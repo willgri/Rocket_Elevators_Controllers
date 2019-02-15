@@ -1,0 +1,289 @@
+'//Battery: All the elevator sections operating for a given Building
+
+'//Column: All the elevators operating a specific number of landings servicing a section of the Building
+
+'//Elevator: One route going up and down
+
+'//CallButton: Buttons located on each floors designed to call for an elevator to go up or down
+
+'//Doors: The doors open and close to let passengers in or out of the elevator
+
+'//FloorRequestButton: Buttons located inside an elevator to request a destination floor that the elevator will take the passenger to
+
+'//OpenDoorButton: Button located inside an elevator to force the door to remain open
+
+'//CloseDoorButton: Button located inside an elevator to request the closing of the door whenever possible
+
+Afficheur d’étage
+
+
+'//operating battery ON
+SEQUENCE initElevatorsystem
+    SET battery status IS Operational
+        FOR EACH column in battery columns
+            FOR EACH elevator in column elevators
+            END FOR
+        END FOR
+    SET elevator status IS IDLE
+    SET elevators starting position TO one RC
+    SET elevator door IS false
+END SEQUENCE
+
+
+'//call elevator extra info (implicit)
+SEQUENCE elevatorWaiting
+    While battery status is on
+        READ callButtons
+    END While
+END SEQUENCE
+
+
+'//Building info numer of floors and number of columns
+SEQUENCE BuildingInfo
+    SET NumberFloor = 66
+    SET NumberColumn = 4
+        RETURN NumberFloor AND NumberColumn
+END SEQUENCE
+
+
+'// define variaable column
+SET Column {
+    NumberOfElevators = 3
+    FloorGroup
+}
+
+
+'// decide witch column to choose
+SEQUENCE ColumnDecider USING BuildingInfo
+    FOR EACH Column in Battery
+        CALCULATE AverageFloorColumn = Roundup(NumberFloor/NumberColumn)
+        SET CalculateColumn = 0
+            increment CalculateColumn = CalculateColumn + 1
+        NewAverage = AverageFloorColumn * CalculateColumn
+            IF AverageFloorColumn > NumberFloor
+                SET AverageFloorColumn to NumberFloor
+            ELSE IF
+        SET column FloorGroup = NewAverage - AverageFloorColumn + 1  TO define FloorGroup and 1
+            END IF
+    END FOR           
+END SEQUENCE
+
+
+'//button light
+'//ON
+SEQUENCE CallButtonLightOn USING CageDirection AND Floor
+    CALL FindCallButton WITH CageDirection AND Floor RETURNING CallButton
+    SET CallButton Light On    
+END SEQUENCE
+
+
+'//button light
+'//OFF
+SEQUENCE CallButtonLightOff USING CageDirection AND floor
+    CALL FindCallButton WITH CageDirection and floor RETURNING CallButton
+    SET CallButton Light Off
+END SEQUENCE
+
+
+'//Request button !!!outside!!! elevator
+SEQUENCE FindCallButton USING CageDirection AND Floor AND FloorGroup
+    FOR EACH callButton in CallButtons
+        IF CageDirection IS CallButton CageDirection AND Floor IS CallButtonFloor THEN
+            RETURN CallButton
+        END IF
+    END FOR
+END SEQUENCE
+
+
+
+'//Request button !!!basement!!! controlled by the battery
+SEQUENCE FloorRequestButton USING Floor AND battery AND FloorGroup
+    FOR EACH callButton in callButtons       
+            RETURN FloorRequestButton
+        END IF
+    END FOR
+END SEQUENCE
+
+'//sequence to request a floor in elevator
+SEQUENCE RequestFloor USING FloorRequestButton
+   CALL CallButtonLightOn WITH FloorRequestButton
+END SEQUENCE
+
+
+'// sequence to turn the button the user pressed to ON
+SEQUENCE InElevatorLightButtonOn USING FloorRequestButton
+   CALL CallButtonFloorInElevator WITH FloorRequestButton RETURNING FloorButtonOnPanel
+   SET FloorButtonOnPanel light to ON USING FloorRequestButton
+END SEQUENCE
+
+
+'// sequence to turn the button the user pressed to off
+SEQUENCE InElevatorLightButtonOff USING FloorRequestButton
+   CALL CallButtonFloorInElevator WITH FloorRequestButton RETURNING FloorButtonOnPanel
+   SET FloorButtonOnPanel light to OFF USING FloorRequestButton
+END SEQUENCE
+
+
+'// find button that has been pressed (light it up)
+SEQUENCE CallButtonFloorInElevator USING FloorRequestButton
+   FOR EACH CallButtonInElevator in CallButtonInElevator
+       IF FloorButtonOnPanel = FloorRequestButton THEN
+           RETURN FloorButtonOnPanel
+       END IF
+   END FOR
+END SEQUENCE
+
+
+'//find available elevator to go down ////cage direction only floor
+SEQUENCE FindBestElevator USING CageDirection AND Floor
+    FOR EACH Elevator in FloorGroup
+
+        SET ElevatorList
+
+        IF Floor IS elevator Floor AND CageDirection IS Elevator CageDirection AND Elevator status IS STOPPED THEN
+            RETURN Elevator
+
+
+        ELSE IF FLoor < elevator Floor AND CageDirection IS Elevator CageDirection AND Elevator status IS MOVING THEN            
+            RETURN Elevator    
+            
+            
+        ELSE IF FLoor < elevator Floor AND CageDirection IS Elevator CageDirection AND Elevator status IS STOPPED THEN            
+            RETURN Elevator
+
+
+        ELSE IF FLoor > elevator floor AND Elevator status IS MOVING OR STOPPED AND Elevator CageDirection IS DOWN THEN                
+            CALL FindLeastBusy RETURNING LeastBusy
+            RETURN LeastBusy
+                                
+        ELSE IF Elevator status IS IDLE THEN
+                RETURN Elevator 
+
+
+        END IF    
+    
+    END FOR
+
+END SEQUENCE
+
+
+'//Show elevator floor !!!!on floor panel
+SEQUENCE DisplayInfoDestination USING Floor AND FloorGroup
+    FOR EACH Elevator in Columnelevators
+        IF FloorRequestButton is PRESSED
+            Display elevator floor init time to 3 sec THEN
+            Display Elevator cage init time to 8 sec THEN
+            SHOW FloorRequestButton
+        END IF
+    END FOR
+END SEQUENCE
+
+
+SET FloorRange [1 to 66]
+'//Show elevator floor !!!!in elevator and on panel in front of elevator
+SEQUENCE DisplayInfoStatus USING Cage_Floor AND FloorGroup
+    REPEAT
+        INCREMENT FloorRange by 1
+         READ FloorRange
+         READ FloorList
+    UNTIL FloorRange in FloorList = destination
+END SEQUENCE
+
+
+
+
+
+'// least busy elevater (last case scenario)
+SEQUENCE FindLeastBusy
+SET ListLenght to Total_Floor
+    FOR EACH Elevator column
+            IF ListLenght > Lenght of Elevator FloorList
+                SET ListLenght to Lenght of Elevator FloorList
+            END IF
+    END FOR
+
+    DETERMINE LeastBusy WITH ListLenght
+    RETURN LeastBusy
+END SEQUENCE
+
+
+'//move Up error
+SEQUENCE ElevatorMoveUp USING Column AND Cage_Floor AND Floor
+  FOR EACH Elevator in Elevators
+        IF Floor > Cage_Floor
+      END IF
+  END FOR
+END SEQUENCE
+
+
+'//move Down to basement
+SEQUENCE ElevatorMoveDown USING Cage_Floor AND Floor
+  FOR EACH Elevator in Elevators
+    SET Elevator to Floor basement
+  END FOR
+END SEQUENCE
+
+
+'// Close door
+SEQUENCE CloseDoor
+    SET door TO CLOSE
+   IF door IS not obstructed
+      SET timer to Close door in 5 sec
+   ELSE IF door IS obstructed
+       CALL OpenDoor
+   END IF
+END SEQUENCE
+
+
+'// door sensor
+SEQUENCE DoorSensor
+    CALL OpenDoor
+END SEQUENCE
+
+
+'//status 
+SEQUENCE StatusMoving
+    SET Elevator Status TO MOVING
+END SEQUENCE
+    
+SEQUENCE StatusStopped
+    SET Elevator Status TO STOPPED
+END SEQUENCE
+
+SEQUENCE StatusIdle
+    SET Elevator Status TO IDLE
+END SEQUENCE
+
+
+'// main operator for every cage (battery)
+SEQUENCE OperateBattery
+    WHILE battery status IS Operational
+        FOR EACH Elevator IN Elevators
+            WHILE ElevatorFloorList IS NOT EMPTY
+            READ NextFloor FROM FloorList
+
+                IF NextFloor IS ElevatorFloor
+
+                    CALL OpenDoor
+
+                ELSE IF NextFloor < ElevatorFloor
+
+                    CALL StatusMoving THEN
+                    CALL OpenDoor THEN
+                    CALL StatusStopped THEN
+                    CALL CloseDoor                   
+
+                ELSE IF NextFloor > ElevatorFloor
+
+                    CALL StatusMoving THEN
+                    CALL OpenDoor THEN
+                    CALL StatusStopped THEN
+                    CALL CloseDoor 
+
+                END IF
+
+            END WHILE
+            Call StatusIdle
+        END FOR
+    End WHILE
+END SEQUENCE
