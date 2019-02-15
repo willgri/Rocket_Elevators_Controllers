@@ -69,6 +69,15 @@ SEQUENCE ColumnDecider USING BuildingInfo
 END SEQUENCE
 
 
+'//call elevator
+'//get info
+SEQUENCE  CallButtonFloor USING Direction AND Floor
+    CALL CallButtonLightOn WITH Direction AND Floor RETURNING CallButton
+    CALL FindBestElevator WITH Direction AND Floor RETURNING elevator
+    CALL SendRequest WITH floor AND elevator
+END SEQUENCE
+
+
 '//button light
 '//ON
 SEQUENCE CallButtonLightOn USING CageDirection AND Floor
@@ -112,20 +121,20 @@ END SEQUENCE
 
 '// sequence to turn the button the user pressed to ON
 SEQUENCE InElevatorLightButtonOn USING FloorRequestButton
-   CALL CallButtonFloorInElevator WITH FloorRequestButton RETURNING FloorButtonOnPanel
+   CALL CallButtonFloorBasement WITH FloorRequestButton RETURNING FloorButtonOnPanel
    SET FloorButtonOnPanel light to ON USING FloorRequestButton
 END SEQUENCE
 
 
 '// sequence to turn the button the user pressed to off
 SEQUENCE InElevatorLightButtonOff USING FloorRequestButton
-   CALL CallButtonFloorInElevator WITH FloorRequestButton RETURNING FloorButtonOnPanel
+   CALL CallButtonFloorBasement WITH FloorRequestButton RETURNING FloorButtonOnPanel
    SET FloorButtonOnPanel light to OFF USING FloorRequestButton
 END SEQUENCE
 
 
 '// find button that has been pressed (light it up)
-SEQUENCE CallButtonFloorInElevator USING FloorRequestButton
+SEQUENCE CallButtonFloorBasement USING FloorRequestButton
    FOR EACH CallButtonInElevator in CallButtonInElevator
        IF FloorButtonOnPanel = FloorRequestButton THEN
            RETURN FloorButtonOnPanel
@@ -186,11 +195,9 @@ SEQUENCE DisplayInfoStatus USING Cage_Floor AND FloorGroup
         INCREMENT FloorRange by 1
          READ FloorRange
          READ FloorList
-    UNTIL FloorRange in FloorList = destination
+    UNTIL FloorRange in FloorList = FloorRequestButton
+    SHOW DisplayInfoStatus on screen
 END SEQUENCE
-
-
-
 
 
 '// least busy elevater (last case scenario)
@@ -221,6 +228,20 @@ SEQUENCE ElevatorMoveDown USING Cage_Floor AND Floor
   FOR EACH Elevator in Elevators
     SET Elevator to Floor basement
   END FOR
+END SEQUENCE
+
+
+'// open door + button light off || close door 
+SEQUENCE OpenDoor
+CALL CallBottonLightOff
+CALL InElevatorLightButtonOff WITH FloorButtonInElevator
+   SET door TO OPEN
+        IF door IS open THEN
+        init time TO 7 sec THEN
+                CALL Closedoor
+        ELSE IF Sensor is detected
+                CALL DoorSensor
+        END IF
 END SEQUENCE
 
 

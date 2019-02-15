@@ -52,7 +52,6 @@ SEQUENCE  CallButtonFloor USING Direction AND Floor
     CALL CallButtonLightOn WITH Direction AND Floor RETURNING CallButton
     CALL FindBestElevator WITH Direction AND Floor RETURNING elevator
     CALL SendRequest WITH floor AND elevator
-
 END SEQUENCE
 
 
@@ -217,9 +216,8 @@ SET ListLenght to Total_Floor
                 SET ListLenght to Lenght of Elevator FloorList
             END IF
     END FOR
-
-    DETERMINE LeastBusy WITH ListLenght
-    RETURN LeastBusy
+        DETERMINE LeastBusy WITH ListLenght
+        RETURN LeastBusy
 END SEQUENCE
 
 '//sorting list 837105 ---->013578  
