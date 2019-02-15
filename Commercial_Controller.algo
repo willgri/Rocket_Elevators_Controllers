@@ -1,22 +1,3 @@
-'//Battery: All the elevator sections operating for a given Building
-
-'//Column: All the elevators operating a specific number of landings servicing a section of the Building
-
-'//Elevator: One route going up and down
-
-'//CallButton: Buttons located on each floors designed to call for an elevator to go up or down
-
-'//Doors: The doors open and close to let passengers in or out of the elevator
-
-'//FloorRequestButton: Buttons located inside an elevator to request a destination floor that the elevator will take the passenger to
-
-'//OpenDoorButton: Button located inside an elevator to force the door to remain open
-
-'//CloseDoorButton: Button located inside an elevator to request the closing of the door whenever possible
-
-Afficheur d’étage
-
-
 '//operating battery ON
 SEQUENCE initElevatorsystem
     SET battery status IS Operational
@@ -242,6 +223,7 @@ CALL InElevatorLightButtonOff WITH FloorButtonInElevator
         ELSE IF Sensor is detected
                 CALL DoorSensor
         END IF
+        RETURN OpenDoor
 END SEQUENCE
 
 
@@ -259,6 +241,20 @@ END SEQUENCE
 '// door sensor
 SEQUENCE DoorSensor
     CALL OpenDoor
+END SEQUENCE
+
+
+'// door sensor
+SEQUENCE DoorSensor
+    CALL OpenDoor
+END SEQUENCE
+'//weight chek
+SEQUENCE weightChek
+    SET MaxWeight to 3500 Lbs 
+        IF WeightSensorValue < MaxWeight THEN
+            CALL DoorSensor
+        ELSE
+            CALL CloseDoor
 END SEQUENCE
 
 
